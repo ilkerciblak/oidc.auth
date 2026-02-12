@@ -1,0 +1,15 @@
+services:
+  go-util:
+    container_name: auth-dev 
+    volumes:
+      - ./:/app:rw
+      - ./nvim:/root/.config/nvim
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    tty: true
+    stdin_open: true
+     
+      

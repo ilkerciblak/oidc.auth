@@ -4,7 +4,8 @@
 > Thus this documentation will contain a summarized information about `OIDC Authentication Protocol` and 3 phased implementation
 > 1. Phase 1: Creating an authentication server for Google Sign In with `Golang`, without using `oidc and ouath2` package
 > 2. Phase 2: Refactoring the application with implementing `oidc` package  
-> 3. Phase 3: Refactoring the application with abstraction layers
+> 3. Phase 3: Refactoring the application with implementing `oath` package
+> 4. Phase 4: Refactoring the application with abstraction layers
 
 ## OIDC: OpenID Connect Protocol
 OpenID Connection Protocol, OIDC, is an identity layer wrapped aroundthe `OAuth 2.0` framework. While OAuth2 mainly aiming providing resource authorization, main purpose of the OIDC is to providing authentication over federated platforms. Once user demands to log with federated identity, they got re-directed to that third parties auth page to identify themselves and return back with their basic profile information. Furthermore, besides authentication and basic profile information different scopes can be used to reach further user data resource.

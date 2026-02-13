@@ -86,22 +86,32 @@ The primary extension that OIDC makes to OAuth2.0 is to enable End-Users to be *
 
 - iss (Issuer)
 Identifies the authentication server that issued the token. Used to verify the token comes from the expected authority.
+
 - sub (Subject)
 A unique and stable identifier for the user within the issuer. It is used by the client to recognize the user.
+
 - aud (Audience)
 Specifies which client (client_id) this token is intended for. The client must reject the token if it does not match its own client_id.
+
 - exp (Expiration Time)
 The time after which the token must no longer be accepted. Prevents the use of old or stolen tokens.
+
 - iat (Issued At)
 The time when the token was created. Helps determine how old the token is.
+
 - auth_time
 The time when the user actually authenticated (logged in). Used when enforcing session age (e.g., with max_age).
+
 - nonce
 A value sent by the client and returned in the token to prevent replay attacks. The client must verify it matches the original request.
+
 - acr (Authentication Context Class Reference)
 Indicates the assurance or security level of the authentication performed (e.g., MFA vs basic login).
+
 - amr (Authentication Methods References)
 Lists the authentication methods used (e.g., password, OTP). Shows how the user was authenticated.
+
 - azp (Authorized Party)
 Identifies the client that the token was issued to, mainly used when multiple audiences are present. Ensures the correct client is authorized to use the token.
+
 

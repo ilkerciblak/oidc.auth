@@ -53,18 +53,7 @@ type GoogleClaims struct {
 	jwt.RegisteredClaims
 }
 
-type jwk struct {
-	Use string `json:"use"`
-	Kid string `json:"kid"`
-	Alg string `json:"alg"`
-	Kty string `json:"kty"`
-	E   string `json:"e"`
-	N   string `json:"n"`
-}
 
-type jwksResponse struct {
-	Keys []jwk `json:"keys"`
-}
 
 func jwkToRSAPublicKey(key jwk) (*rsa.PublicKey, error) {
 	nBytes, err := base64.RawURLEncoding.DecodeString(key.N)

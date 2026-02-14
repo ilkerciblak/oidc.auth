@@ -11,18 +11,22 @@ type appConfig struct {
 	GOOGLE_AUTH_URI      string `json:"google_auth_uri"`
 	GOOGLE_TOKEN_URI     string `json:"google_token_uri"`
 	GOOGLE_REDIRECT_URI  string `json:"google_redirect_uri"`
+	JWT_SECRET           string `json:"jwt_secret"`
+	GOOGLE_JWKS_URI      string `json:"google_jwks_uri"`
 }
 
 func LoadConfig() *appConfig {
 	return &appConfig{
-		PORT: getEnvString("PORT", "8080"),
-		GOOGLE_CLIENT_ID: getEnvString("GOOGLE_CLIENT_ID", ""),
-		GOOGLE_CLIENT_SECRET : getEnvString("GOOGLE_CLIENT_SECRET",""),
-		GOOGLE_PROJECT_ID    : getEnvString("GOOGLE_PROJECT_ID",""),
-		GOOGLE_X509_CERT_URL : getEnvString("GOOGLE_X509_CERT_URL",""),
-		GOOGLE_AUTH_URI      : getEnvString("GOOGLE_AUTH_URI",""),
-		GOOGLE_TOKEN_URI     : getEnvString("GOOGLE_TOKEN_URI",""),
-		GOOGLE_REDIRECT_URI  : getEnvString("GOOGLE_REDIRECT_URI",""),
+		PORT:                 getEnvString("PORT", "8080"),
+		GOOGLE_CLIENT_ID:     getEnvString("GOOGLE_CLIENT_ID", ""),
+		GOOGLE_CLIENT_SECRET: getEnvString("GOOGLE_CLIENT_SECRET", ""),
+		GOOGLE_PROJECT_ID:    getEnvString("GOOGLE_PROJECT_ID", ""),
+		GOOGLE_X509_CERT_URL: getEnvString("GOOGLE_X509_CERT_URL", ""),
+		GOOGLE_AUTH_URI:      getEnvString("GOOGLE_AUTH_URI", ""),
+		GOOGLE_TOKEN_URI:     getEnvString("GOOGLE_TOKEN_URI", ""),
+		GOOGLE_REDIRECT_URI:  getEnvString("GOOGLE_REDIRECT_URI", ""),
+		JWT_SECRET:           getEnvString("JWT_SECRET", ""),
+		GOOGLE_JWKS_URI:      getEnvString("GOOGLE_JWKS_URI", ""),
 	}
 }
 

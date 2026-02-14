@@ -48,3 +48,7 @@ func (c RegisteredClaims) GetIssuer() (string, error) {
 func (c RegisteredClaims) GetSubject() (string, error) {
 	return c.Subject, nil
 }
+
+### Implement some user logic
+
+#### Impelement Redis on phase 2 for state and nonce store

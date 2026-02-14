@@ -14,7 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type googleProvider struct {
+type GoogleProvider struct {
 	ClientID         string
 	ClientSecret     string
 	AuthURI          string
@@ -26,15 +26,15 @@ type googleProvider struct {
 	jwtksExpirety    time.Time
 }
 
-func (p googleProvider) CreateAuthUrl(state, nonce string) string {
+func (p GoogleProvider) CreateAuthUrl(state, nonce string) string {
 	query_params := url.Values{}
 	query_params.Add("client_id", p.ClientID)
 	query_params.Add("redirect_uri", p.RedirectURI)
-	query_params.Add("scope", strings.Join(p.Scopes, "%20"))
+	query_params.Add("scope", strings.Join(p.Scopes, " "))
 	query_params.Add("response_type", "code")
 	query_params.Add("state", state)
 	query_params.Add("nonce", nonce)
-	
+
 	return fmt.Sprintf("%s?%s", p.AuthURI, query_params.Encode())
 }
 
@@ -53,8 +53,6 @@ type GoogleClaims struct {
 	jwt.RegisteredClaims
 }
 
-
-
 func jwkToRSAPublicKey(key jwk) (*rsa.PublicKey, error) {
 	nBytes, err := base64.RawURLEncoding.DecodeString(key.N)
 	if err != nil {
@@ -66,7 +64,6 @@ func jwkToRSAPublicKey(key jwk) (*rsa.PublicKey, error) {
 	}
 	n := new(big.Int).SetBytes(nBytes)
 	e := new(big.Int).SetBytes(eBytes)
-		
 
 	return &rsa.PublicKey{
 		N: n,
@@ -74,8 +71,8 @@ func jwkToRSAPublicKey(key jwk) (*rsa.PublicKey, error) {
 	}, nil
 }
 
-func (p *googleProvider) fetchJWKS() error {
-	if time.Now().Before(p.jwtksExpirety) && p.cachedPublicKeys != nil {
+func (p *GoogleProvider) fetchJWKS() error {
+	if p.cachedPublicKeys != nil && time.Now().Before(p.jwtksExpirety) {
 		return nil
 	}
 
@@ -96,7 +93,6 @@ func (p *googleProvider) fetchJWKS() error {
 		if err != nil {
 			return err
 		}
-
 		p.cachedPublicKeys[key.Kid] = pubKey
 	}
 
@@ -105,18 +101,19 @@ func (p *googleProvider) fetchJWKS() error {
 	return nil
 }
 
-func (p googleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error) {
+func (p GoogleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error) {
 	// Fetch JWKS Keys
 	if err := p.fetchJWKS(); err != nil {
 		return nil, err
 	}
 
+
 	token, err := jwt.ParseWithClaims(
 		id_token_str,
 		&GoogleClaims{},
 		func(t *jwt.Token) (any, error) {
-			val, k := t.Method.(*jwt.SigningMethodRSA)
-			if !k || val.Name != jwt.SigningMethodRS256.Name {
+			_, k := t.Method.(*jwt.SigningMethodRSA)
+			if !k {
 				return nil, fmt.Errorf("Invalid Token Signing Method")
 			}
 
@@ -136,15 +133,15 @@ func (p googleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error
 	if err != nil {
 		return nil, fmt.Errorf("Invalid Token Format")
 	}
-
 	claims, k := token.Claims.(*GoogleClaims)
 	if !k {
 		return nil, fmt.Errorf("Invalid Claims Format")
 	}
 
-	if !strings.EqualFold("https://account.google.com", claims.Issuer)|| strings.EqualFold(claims.Issuer, "account.google.com") {
-		return nil, fmt.Errorf("Invalid Token: invalid issuer ")
-	}
+
+	//if !strings.EqualFold("https://account.google.com", claims.Issuer) || strings.EqualFold(claims.Issuer, "account.google.com") {
+	//	return nil, fmt.Errorf("Invalid Token: invalid issuer ")
+	//}
 
 	if claims.Audience[0] != p.ClientID {
 		return nil, fmt.Errorf("Invalid Audience")
@@ -157,11 +154,11 @@ func (p googleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error
 	return claims, nil
 }
 
-func (g googleProvider) ExchangeCode(access_code_str string) (*TokenResponse, error) {
+func (g GoogleProvider) ExchangeCode(access_code_str string) (*TokenResponse, error) {
 	params := url.Values{}
 	params.Add("code", access_code_str)
 	params.Add("client_id", g.ClientID)
-	params.Add("cleint_secret", g.ClientSecret)
+	params.Add("client_secret", g.ClientSecret)
 	params.Add("redirect_uri", g.RedirectURI)
 	params.Add("grant_type", "authorization_code")
 	r, err := http.NewRequest(
@@ -175,9 +172,7 @@ func (g googleProvider) ExchangeCode(access_code_str string) (*TokenResponse, er
 
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	client := http.Client{
-		Timeout: time.Duration(10 * time.Second),
-	}
+	client := http.Client{}
 
 	resp, err := client.Do(r)
 	if err != nil {

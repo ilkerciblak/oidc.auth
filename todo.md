@@ -18,4 +18,33 @@ GOOGLE_REDIRECT_URI= fill_
 ```
 
 
+#### Claims Interface
+// GetExpirationTime implements the Claims interface.
+func (c RegisteredClaims) GetExpirationTime() (*NumericDate, error) {
+	return c.ExpiresAt, nil
+}
 
+// GetNotBefore implements the Claims interface.
+func (c RegisteredClaims) GetNotBefore() (*NumericDate, error) {
+	return c.NotBefore, nil
+}
+
+// GetIssuedAt implements the Claims interface.
+func (c RegisteredClaims) GetIssuedAt() (*NumericDate, error) {
+	return c.IssuedAt, nil
+}
+
+// GetAudience implements the Claims interface.
+func (c RegisteredClaims) GetAudience() (ClaimStrings, error) {
+	return c.Audience, nil
+}
+
+// GetIssuer implements the Claims interface.
+func (c RegisteredClaims) GetIssuer() (string, error) {
+	return c.Issuer, nil
+}
+
+// GetSubject implements the Claims interface.
+func (c RegisteredClaims) GetSubject() (string, error) {
+	return c.Subject, nil
+}

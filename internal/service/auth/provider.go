@@ -1,22 +1,29 @@
 package auth
 
 import (
+	"crypto/rsa"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type googleProvider struct {
-	ClientID     string
-	ClientSecret string
-	AuthURI      string
-	TokenURI     string
-	RedirectURI  string
-	Scopes       []string
+	ClientID         string
+	ClientSecret     string
+	AuthURI          string
+	TokenURI         string
+	RedirectURI      string
+	JWKsURI          string
+	Scopes           []string
+	cachedPublicKeys map[string]*rsa.PublicKey
+	jwtksExpirety    time.Time
 }
 
 func (p googleProvider) CreateAuthUrl(state, nonce string) string {
@@ -24,10 +31,10 @@ func (p googleProvider) CreateAuthUrl(state, nonce string) string {
 	query_params.Add("client_id", p.ClientID)
 	query_params.Add("redirect_uri", p.RedirectURI)
 	query_params.Add("scope", strings.Join(p.Scopes, "%20"))
-	query_params.Add("response_type", "scope")
+	query_params.Add("response_type", "code")
 	query_params.Add("state", state)
 	query_params.Add("nonce", nonce)
-
+	
 	return fmt.Sprintf("%s?%s", p.AuthURI, query_params.Encode())
 }
 
@@ -46,7 +53,75 @@ type GoogleClaims struct {
 	jwt.RegisteredClaims
 }
 
+type jwk struct {
+	Use string `json:"use"`
+	Kid string `json:"kid"`
+	Alg string `json:"alg"`
+	Kty string `json:"kty"`
+	E   string `json:"e"`
+	N   string `json:"n"`
+}
+
+type jwksResponse struct {
+	Keys []jwk `json:"keys"`
+}
+
+func jwkToRSAPublicKey(key jwk) (*rsa.PublicKey, error) {
+	nBytes, err := base64.RawURLEncoding.DecodeString(key.N)
+	if err != nil {
+		return nil, err
+	}
+	eBytes, err := base64.RawURLEncoding.DecodeString(key.E)
+	if err != nil {
+		return nil, err
+	}
+	n := new(big.Int).SetBytes(nBytes)
+	e := new(big.Int).SetBytes(eBytes)
+		
+
+	return &rsa.PublicKey{
+		N: n,
+		E: int(e.Int64()),
+	}, nil
+}
+
+func (p *googleProvider) fetchJWKS() error {
+	if time.Now().Before(p.jwtksExpirety) && p.cachedPublicKeys != nil {
+		return nil
+	}
+
+	resp, err := http.Get(p.JWKsURI)
+	if err != nil {
+		return fmt.Errorf("[FAILED TO FETCH JWKS KEYS]: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var jwks jwksResponse
+	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
+		return fmt.Errorf("[FAILED TO DECODE JWKs RESPONSE]: %v", err)
+	}
+
+	p.cachedPublicKeys = make(map[string]*rsa.PublicKey)
+	for _, key := range jwks.Keys {
+		pubKey, err := jwkToRSAPublicKey(key)
+		if err != nil {
+			return err
+		}
+
+		p.cachedPublicKeys[key.Kid] = pubKey
+	}
+
+	p.jwtksExpirety = time.Now().Add(1 * time.Hour)
+
+	return nil
+}
+
 func (p googleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error) {
+	// Fetch JWKS Keys
+	if err := p.fetchJWKS(); err != nil {
+		return nil, err
+	}
+
 	token, err := jwt.ParseWithClaims(
 		id_token_str,
 		&GoogleClaims{},
@@ -55,16 +130,18 @@ func (p googleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error
 			if !k || val.Name != jwt.SigningMethodRS256.Name {
 				return nil, fmt.Errorf("Invalid Token Signing Method")
 			}
-			kid, ok := t.Header["kid"].(string)
-			if !ok{
-				return nil, fmt.Errorf("kid not found in the token header")
+
+			kid, k := t.Header["kid"].(string)
+			if !k {
+				return nil, fmt.Errorf("Invalid Token: kid is not in the header")
 			}
 
-			publicKey, k := p.jwtksCache[kid]
-			if k! {
-				return nil, fmt.Errorf("Public key cannot found for kid=%s", kid)
+			publicKey, exists := p.cachedPublicKeys[kid]
+			if !exists {
+				return nil, fmt.Errorf("Invalid Token: public key not found for kid (%s)", kid)
+			}
 
-			return []byte(p.ClientSecret), nil
+			return publicKey, nil
 		},
 	)
 	if err != nil {
@@ -74,6 +151,18 @@ func (p googleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error
 	claims, k := token.Claims.(*GoogleClaims)
 	if !k {
 		return nil, fmt.Errorf("Invalid Claims Format")
+	}
+
+	if !strings.EqualFold("https://account.google.com", claims.Issuer)|| strings.EqualFold(claims.Issuer, "account.google.com") {
+		return nil, fmt.Errorf("Invalid Token: invalid issuer ")
+	}
+
+	if claims.Audience[0] != p.ClientID {
+		return nil, fmt.Errorf("Invalid Audience")
+	}
+
+	if time.Now().Unix() > claims.ExpiresAt.Unix() {
+		return nil, fmt.Errorf("Token Expired")
 	}
 
 	return claims, nil
@@ -96,7 +185,10 @@ func (g googleProvider) ExchangeCode(access_code_str string) (*TokenResponse, er
 	}
 
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	client := http.Client{}
+
+	client := http.Client{
+		Timeout: time.Duration(10 * time.Second),
+	}
 
 	resp, err := client.Do(r)
 	if err != nil {

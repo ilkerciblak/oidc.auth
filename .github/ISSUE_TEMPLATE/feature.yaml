@@ -1,0 +1,72 @@
+name: Feature Implementation 
+description: Feature implementation to the project
+title: "[FEATURE]"
+labels: ["enchancement"]
+body:
+  - type: input
+    id: phase 
+    attributes:
+      label: Phase
+      description: Which phase does this development belongs?
+      placeholder: "Phase x.x"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A brief explanation of the feature
+      placeholder: Redis client will be instrumented to implement cache mechanism
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivations
+      description: Why this feature is required and/or which problem does it solves?
+      value: |
+        - [Why is this required?]
+        - [What problem does it solve?]
+        - [other reasons to implement this feature]
+        ...
+
+  - type: checkboxes
+    id: tasks
+    attributes:
+      label: Tasks
+      description: Ordered tasks to guide and do this feature implementation
+      options:
+        - label: Implementation Details
+        - label: Unit tests
+        - label: Integration Tests
+        - label: Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: technical
+    attributes:       
+      label: Technical Details
+      description: Key technical decisions and tools
+      placeholder: Redis Key Format: `provider_name:state_str:{state_val}`
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: acceptance
+    attributes:
+        label: Acceptance Criteria
+        description: Must have points to accept this implementation as done
+    validations: 
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Relevant link and resources
+
+
+

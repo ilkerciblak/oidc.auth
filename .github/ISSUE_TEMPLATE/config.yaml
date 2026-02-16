@@ -1,0 +1,14 @@
+contact_links:
+  - name: 💬 Ask a Question
+    url: https://github.com/ilkerciblak/oidc.auth/discussions
+    about: For questions, use Discussions instead of Issues
+  
+  - name: 📖 Documentation
+    url: https://github.com/ilkerciblak/oidc.auth/
+    about: Check documentation before opening an issue
+  
+  - name: 💡 Feature Ideas
+    url: https://github.com/ilkerciblak/oidc.auth/discussions/categories/ideas
+    about: Share and discuss feature ideas
+blank_issues_enabled: false
+

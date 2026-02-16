@@ -95,8 +95,16 @@ func (p *GoogleProvider) fetchJWKS() error {
 		}
 		p.cachedPublicKeys[key.Kid] = pubKey
 	}
+	if cacheControl := resp.Header.Get("Cache-Control"); cacheControl != "" {
+		var max_age int
+		_, err := fmt.Sscanf(cacheControl, "max-age=%d", &max_age)
+		if err != nil || max_age <= 0 {
+			p.jwtksExpirety = time.Now().Add(1 * time.Hour)
+		}
 
-	p.jwtksExpirety = time.Now().Add(1 * time.Hour)
+		p.jwtksExpirety = time.Now().Add(time.Duration(max_age) * time.Second)
+
+	}
 
 	return nil
 }
@@ -106,7 +114,6 @@ func (p GoogleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error
 	if err := p.fetchJWKS(); err != nil {
 		return nil, err
 	}
-
 
 	token, err := jwt.ParseWithClaims(
 		id_token_str,
@@ -137,7 +144,6 @@ func (p GoogleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error
 	if !k {
 		return nil, fmt.Errorf("Invalid Claims Format")
 	}
-
 
 	//if !strings.EqualFold("https://account.google.com", claims.Issuer) || strings.EqualFold(claims.Issuer, "account.google.com") {
 	//	return nil, fmt.Errorf("Invalid Token: invalid issuer ")

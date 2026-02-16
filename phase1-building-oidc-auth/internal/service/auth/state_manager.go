@@ -13,11 +13,15 @@ type StateManager struct {
 	store map[string]stateEntry
 }
 
-func NewStateManager() *StateManager{
-	return &StateManager{
+func NewStateManager() *StateManager {
+	sm := &StateManager{
 		mu:    &sync.RWMutex{},
 		store: map[string]stateEntry{},
 	}
+
+	go sm.refresh()
+
+	return sm
 }
 
 type stateEntry struct {
@@ -78,4 +82,17 @@ func (sm *StateManager) Delete(state string) {
 	sm.mu.Unlock()
 }
 
-
+func (sm *StateManager) refresh() {
+	ticker := time.NewTicker(3 * time.Minute)
+	go func() {
+		for range ticker.C {
+			sm.mu.Lock()
+			for state, entry := range sm.store {
+				if time.Now().After(entry.expirety) {
+					delete(sm.store, state)
+				}
+			}
+			sm.mu.Unlock()
+		}
+	}()
+}

@@ -30,7 +30,6 @@ body:
         - [Why is this required?]
         - [What problem does it solve?]
         - [other reasons to implement this feature]
-        ...
   - type: checkboxes
     id: tasks
     attributes:
@@ -49,7 +48,7 @@ body:
     attributes:       
       label: Technical Details
       description: Key technical decisions and tools
-      placeholder: Redis Key Format: `provider_name:state_str:{state_val}`
+      placeholder: Redis Key Format: provider_name:state_str:{state_val}
     validations:
       required: true
 

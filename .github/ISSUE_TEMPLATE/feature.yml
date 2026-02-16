@@ -1,7 +1,7 @@
 name: Feature Implementation 
 description: Feature implementation to the project
 title: "[FEATURE]"
-labels: ["enchancement"]
+labels: ["enhancement"]
 body:
   - type: input
     id: phase 
@@ -31,7 +31,6 @@ body:
         - [What problem does it solve?]
         - [other reasons to implement this feature]
         ...
-
   - type: checkboxes
     id: tasks
     attributes:
@@ -57,8 +56,10 @@ body:
   - type: checkboxes
     id: acceptance
     attributes:
-        label: Acceptance Criteria
-        description: Must have points to accept this implementation as done
+      label: Acceptance Criteria
+      description: Must have points to accept this implementation as done
+      options:
+        - label: Criteria 1
     validations: 
       required: true
 

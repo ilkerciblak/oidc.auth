@@ -52,3 +52,6 @@ func (c RegisteredClaims) GetSubject() (string, error) {
 ### Implement some user logic
 
 #### Impelement Redis on phase 2 for state and nonce store
+- Implement redis on StateManager 
+
+

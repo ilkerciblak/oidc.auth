@@ -36,7 +36,7 @@ body:
     attributes:
       label: Tasks
       description: Ordered tasks to guide and do this feature implementation
-      value:
+      value: |
         - [ ] Implementation Details
         - [ ] Unit tests
         - [ ] Integration Tests
@@ -58,7 +58,7 @@ body:
     attributes:
       label: Acceptance Criteria
       description: Must have points to accept this implementation as done
-      options:
+      value: |
         - [ ] Criteria 1
     validations: 
       required: true

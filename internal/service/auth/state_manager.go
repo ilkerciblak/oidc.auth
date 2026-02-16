@@ -71,6 +71,7 @@ func generateState() (string, error) {
 	state := base64.URLEncoding.EncodeToString(randomBytes)
 	return state, nil
 }
+
 func (sm *StateManager) Delete(state string) {
 	sm.mu.Lock()
 	delete(sm.store, state)

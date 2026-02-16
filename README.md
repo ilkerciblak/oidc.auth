@@ -3,9 +3,13 @@
 > Scope of this repository to **Learn while implementing** the `OpenID Connection Protocol`. 
 > Thus this documentation will contain a summarized information about `OIDC Authentication Protocol`and 3 phased implementation for `authentication using the authorization code flow`
 > 1. Phase 1: Creating an authentication server for Google Sign In with `Golang`, without using `oidc and ouath2` package
+>   -  Phase 1.1 : Implementing redis to handle some storing issues instead of using mutexes
+>   -  Phase 1.2 : Implementing user business logic
 > 2. Phase 2: Refactoring the application with implementing `oidc` package  
-> 3. Phase 3: Refactoring the application with implementing `oath` package
+> 3. Phase 3: Refactoring the application with implementing `oauth2` package
 > 4. Phase 4: Refactoring the application with abstraction layers
+>   -  Phase 4.1 : Implementing additional oauth provider to test out abstractions
+
 
 ## OIDC: OpenID Connect Protocol
 OpenID Connection Protocol, OIDC, is an identity layer wrapped aroundthe `OAuth 2.0` framework. While OAuth2 mainly aiming providing resource authorization, main purpose of the OIDC is to providing authentication over federated platforms. Once user demands to log with federated identity, they got re-directed to that third parties auth page to identify themselves and return back with their basic profile information. Furthermore, besides authentication and basic profile information different scopes can be used to reach further user data resource.
@@ -84,34 +88,129 @@ Finally, application can complete authentication process and redirect user to so
 
 The primary extension that OIDC makes to OAuth2.0 is to enable End-Users to be **Authenticated** with `id_token` data structure. The `id_token` is a security token that contains `Claims` about the *Authentication of an End-User* by an Authorization Server when using a Client and potentially other requested Claims. The `id_token` is represented as a `JWT`.
 
-- iss (Issuer)
+- `iss` (Issuer)
 Identifies the authentication server that issued the token. Used to verify the token comes from the expected authority.
 
-- sub (Subject)
+- `sub` (Subject)
 A unique and stable identifier for the user within the issuer. It is used by the client to recognize the user.
 
-- aud (Audience)
+- `aud` (Audience)
 Specifies which client (client_id) this token is intended for. The client must reject the token if it does not match its own client_id.
 
-- exp (Expiration Time)
+- `exp` (Expiration Time)
 The time after which the token must no longer be accepted. Prevents the use of old or stolen tokens.
 
-- iat (Issued At)
+- `iat` (Issued At)
 The time when the token was created. Helps determine how old the token is.
 
-- auth_time
+- `auth_time`
 The time when the user actually authenticated (logged in). Used when enforcing session age (e.g., with max_age).
 
-- nonce
+- `nonce`
 A value sent by the client and returned in the token to prevent replay attacks. The client must verify it matches the original request.
 
-- acr (Authentication Context Class Reference)
+- `acr` (Authentication Context Class Reference)
 Indicates the assurance or security level of the authentication performed (e.g., MFA vs basic login).
 
-- amr (Authentication Methods References)
+- `amr` (Authentication Methods References)
 Lists the authentication methods used (e.g., password, OTP). Shows how the user was authenticated.
 
-- azp (Authorized Party)
+- `azp` (Authorized Party)
 Identifies the client that the token was issued to, mainly used when multiple audiences are present. Ensures the correct client is authorized to use the token.
+
+ID Tokens are commonly signed using `JWS`, thus in order to reach out these (and other propobal claims) `id_token` should be de-crypted using provided JWS signature. Commonly the signing party publishes its key in a JWK Set at its `jwks_uri` location that includes the `kid` of the signing key. These `public_keys` are rotated *kindly* thus demanding party can use caching for these values. TTL can be found in theprovider's `jwks_uri`s `Cache-Control` header.
+
+### Obtaining User Information from the ID Token
+
+As mentioned, an `id_token` is a `JWT(JWAT)`, where cryptographically signed Base64-encoded JSON object. Normally it is critical to **validate an ID Token** before using it, most oidc providers combine validation with the work of decoding the base64url-encoded values and parsing the JSON within. Thus in most cases, validation process end up with claim access or vice versa.
+
+#### Validating an `id_token`
+
+ID Tokens are sensitive and can be misused if intercepted. Thus these tokens are handled securly by transmitting them only over HTTPS and only using POST data or within the request headers. On the other hand, if your server stores it, it should be stored most securely.
+
+> One thing that makes ID tokens useful is that fact that you can pass them around different components of your app. These components can use an ID token as a lightweight authentication mechanism authenticating the app and the user. But before you can use the information in the ID token or rely on it as an assertion that the user has authenticated, you must validate it.
+
+Validation *- and decryption mostly -* requires several steps:
+    1. Verify that the ID Token is properly signed by the issuer. Public Keys can be found using provider specified `jwks_uri`.
+    2. Verify `iss` claims with the provider
+    3. Verify `aud` claim is equal to your app's client ID
+    4. Verify the token expirety, `exp` claim
+    5. Verify other provider specific security claims, e.g. `Google` provides `hd` claim to be check.
+
+### Obtaining (more) User Informations
+
+OIDC's provides standart claims, to see please check [The OpenID Connection Specs Page](https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims), which defines a standard set of basic profile Claims. Besides this set, additional claims can be requested using specific `scope` values or individual claims can be requested using the `claims` request parameter. These `scope` values mostly provider specific. For an example, `Google` provides three different scopes in use which are `openid email profile`.
+
+#### UserInfo Endpoint and UserInfo Request
+
+In order to gain access to desired protected resource, the first `auth request` must include related scope. That way your application can use the `access_token` and the `oidc standard`.
+
+After that to gain access to protected resources, just make an HTTPS `GET` request to provider's `userinfo endpoint`. The `userinfo` response includes information about the protected resource as described in `OIDC Standard Claims` and the providers `claims supported` metadata which introduces in their `Discovery Document`. Users or their organizations may choose to supply or withhold certain fields, so you might not get information for every field for your authorized scopes of access.
+
+## Discovery Document, `.well-known`
+
+The OpenID Connect protocol requires the use of multiple endpoints for authenticating users, and for requesting resources including tokens, user information, and public keys.
+
+To simplify implementations and increase flexibility, OpenID Connect allows the use of a "Discovery document," a JSON document found at a well-known location containing key-value pairs which provide details about the OpenID Connect provider's configuration, including the URIs of the authorization, token, revocation, userinfo, and public-keys endpoints. The Discovery document for Google's OpenID Connect service may be retrieved from:
+
+```
+https://accounts.google.com/.well-known/openid-configuration
+```
+
+example response, which is the google's discovery document
+```
+{
+  "issuer": "https://accounts.google.com",
+  "authorization_endpoint": "https://accounts.google.com/o/oauth2/v2/auth",
+  "device_authorization_endpoint": "https://oauth2.googleapis.com/device/code",
+  "token_endpoint": "https://oauth2.googleapis.com/token",
+  "userinfo_endpoint": "https://openidconnect.googleapis.com/v1/userinfo",
+  "revocation_endpoint": "https://oauth2.googleapis.com/revoke",
+  "jwks_uri": "https://www.googleapis.com/oauth2/v3/certs",
+  "response_types_supported": [
+    "code",
+    "token",
+    "id_token",
+    "code token",
+    "code id_token",
+    "token id_token",
+    "code token id_token",
+    "none"
+  ],
+  "subject_types_supported": [
+    "public"
+  ],
+  "id_token_signing_alg_values_supported": [
+    "RS256"
+  ],
+  "scopes_supported": [
+    "openid",
+    "email",
+    "profile"
+  ],
+  "token_endpoint_auth_methods_supported": [
+    "client_secret_post",
+    "client_secret_basic"
+  ],
+  "claims_supported": [
+    "aud",
+    "email",
+    "email_verified",
+    "exp",
+    "family_name",
+    "given_name",
+    "iat",
+    "iss",
+    "locale",
+    "name",
+    "picture",
+    "sub"
+  ],
+  "code_challenge_methods_supported": [
+    "plain",
+    "S256"
+  ]
+}
+```
 
 

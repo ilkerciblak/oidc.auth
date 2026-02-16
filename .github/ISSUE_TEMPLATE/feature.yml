@@ -30,16 +30,17 @@ body:
         - [Why is this required?]
         - [What problem does it solve?]
         - [other reasons to implement this feature]
-  - type: checkboxes
+        
+  - type: textarea 
     id: tasks
     attributes:
       label: Tasks
       description: Ordered tasks to guide and do this feature implementation
-      options:
-        - label: Implementation Details
-        - label: Unit tests
-        - label: Integration Tests
-        - label: Documentation
+      value:
+        - [ ] Implementation Details
+        - [ ] Unit tests
+        - [ ] Integration Tests
+        - [ ] Documentation
     validations:
       required: true
 
@@ -52,13 +53,13 @@ body:
     validations:
       required: true
 
-  - type: checkboxes
+  - type: textarea 
     id: acceptance
     attributes:
       label: Acceptance Criteria
       description: Must have points to accept this implementation as done
       options:
-        - label: Criteria 1
+        - [ ] Criteria 1
     validations: 
       required: true
 

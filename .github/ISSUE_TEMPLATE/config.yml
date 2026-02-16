@@ -10,5 +10,5 @@ contact_links:
   - name: 💡 Feature Ideas
     url: https://github.com/ilkerciblak/oidc.auth/discussions/categories/ideas
     about: Share and discuss feature ideas
-blank_issues_enabled: false
+blank_issues_enabled: true 
 

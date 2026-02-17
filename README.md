@@ -4,11 +4,17 @@
 > Thus this documentation will contain a summarized information about `OIDC Authentication Protocol`and 3 phased implementation for `authentication using the authorization code flow`
 > 1. Phase 1: Creating an authentication server for Google Sign In with `Golang`, without using `oidc and ouath2` package
 >   -  Phase 1.1 : Implementing redis to handle some storing issues instead of using mutexes
->   -  Phase 1.2 : Implementing user business logic
+>   -  Phase 1.2 : Implementing OpenID Connect Discovery 1.0
+>   -  Phase 1.3 : Implementing user business logic
 > 2. Phase 2: Refactoring the application with implementing `oidc` package  
 > 3. Phase 3: Refactoring the application with implementing `oauth2` package
 > 4. Phase 4: Refactoring the application with abstraction layers
 >   -  Phase 4.1 : Implementing additional oauth provider to test out abstractions
+
+
+> [!WARNING]
+> 
+> This project is not `production ready` due no extra security layers are included e.g. no observability or proper exception handling implemented. This repository only includes the R&D on `OpenID Connect Protocol`. 
 
 
 ## OIDC: OpenID Connect Protocol
@@ -212,5 +218,4 @@ example response, which is the google's discovery document
   ]
 }
 ```
-
 

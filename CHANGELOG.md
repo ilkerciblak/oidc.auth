@@ -1,3 +1,11 @@
+## Phase [1.2.0]
+
+### Added
+- OIDC Provider Configuration Discovery 1.0 implemented
+
+### Fixed
+- Provider `VerifyIDToken` issuer check
+
 ## Phase [1.1.0]
 
 ### Added

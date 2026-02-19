@@ -1,14 +1,12 @@
 package main
 
 import (
-	"net/http"
-
 	"auth-app/internal/platform"
 	"auth-app/internal/service/auth"
+	"net/http"
 )
 
 func main() {
-	
 	cfg := platform.LoadConfig()
 
 	google_provider := auth.GoogleProvider{
@@ -21,18 +19,21 @@ func main() {
 		Scopes:       []string{"openid", "email"},
 	}
 
-	state_manager := auth.NewStateManager()
+	state_manager := auth.NewRedisStateManager()
 	jwt_manager := auth.JwtManager{
 		Secret: cfg.JWT_SECRET,
 	}
 	google_oidc_handler := auth.GoogleOIDCHandler{
-		StateManager:   state_manager,
-		GoogleProvider: google_provider,
-		JwtManager:     &jwt_manager,
+		RedisStateManager: state_manager,
+		GoogleProvider:    google_provider,
+		JwtManager:        &jwt_manager,
 	}
-	http.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("hello friend"))
-	})
+	http.HandleFunc("/home",
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "/app/static_files/home.html")
+		},
+	)
+
 	http.HandleFunc(
 		"/",
 		LoginScreenHTML,
@@ -50,10 +51,9 @@ func main() {
 	)
 }
 
-// Directly uses `index.html` file 
-func LoginScreenHTML(w http.ResponseWriter, r *http.Request)  {
-		http.FileServer(http.Dir("/app/static_files/")).ServeHTTP(w, r)
-		
+// Directly uses `index.html` file
+func LoginScreenHTML(w http.ResponseWriter, r *http.Request) {
+	http.FileServer(http.Dir("/app/static_files/")).ServeHTTP(w, r)
 }
 
 // Different work-around to build login screen

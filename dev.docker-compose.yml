@@ -19,9 +19,5 @@ services:
     ports:
       - "6379:6379"
     command: --loglevel warning 
-    healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
-      interval: 1s
-      timeout: 3s
-      retries: 5
+    
 

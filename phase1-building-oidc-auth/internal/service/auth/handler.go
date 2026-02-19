@@ -7,12 +7,15 @@ import (
 
 type GoogleOIDCHandler struct {
 	GoogleProvider
-	*StateManager
+	*RedisStateManager
 	*JwtManager
 }
 
 func (g GoogleOIDCHandler) Login(w http.ResponseWriter, r *http.Request) {
-	state, err := g.GenerateState()
+	state, err := g.GenerateState(
+		r.Context(),
+		"google",
+	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -35,7 +38,11 @@ func (g GoogleOIDCHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	// nonce := r.URL.Query().Get("nonce")
 	code := r.URL.Query().Get("code")
 
-	if err := g.ValidateState(state); err != nil {
+	if err := g.ValidateState(
+		r.Context(),
+		state,
+		"google",
+	); err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 	}
 

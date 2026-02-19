@@ -13,4 +13,11 @@ services:
       - "8001:8000"
     tty: true
     stdin_open: true
-       
+  state-store:
+    container_name: redis_state 
+    image: redis:7.4-alpine 
+    ports:
+      - "6379:6379"
+    command: --loglevel warning 
+    
+

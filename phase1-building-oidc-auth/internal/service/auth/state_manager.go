@@ -1,8 +1,7 @@
 package auth
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"auth-app/internal/platform"
 	"fmt"
 	"sync"
 	"time"
@@ -35,7 +34,7 @@ func newStateEntry(duration time.Duration) stateEntry {
 }
 
 func (s *StateManager) GenerateState() (string, error) {
-	state, err := generateState()
+	state, err := platform.GenerateBase64EncodedString()
 	if err != nil {
 		return "", err
 	}
@@ -63,18 +62,6 @@ func (s *StateManager) ValidateState(state_string string) error {
 	return nil
 }
 
-func generateState() (string, error) {
-	randomBytes := make([]byte, 32)
-
-	// generated random bytes using crypto/rand
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		return "", fmt.Errorf("[rand.Read]:  %v", err)
-	}
-
-	state := base64.URLEncoding.EncodeToString(randomBytes)
-	return state, nil
-}
 
 func (sm *StateManager) Delete(state string) {
 	sm.mu.Lock()

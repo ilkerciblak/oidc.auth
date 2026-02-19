@@ -21,16 +21,44 @@ type GoogleProvider struct {
 	TokenURI         string
 	RedirectURI      string
 	JWKsURI          string
-	Scopes           []string
+	Scopes           string
 	cachedPublicKeys map[string]*rsa.PublicKey
 	jwtksExpirety    time.Time
+}
+
+func (g *GoogleProvider) Instrument(client_id, client_secret, redirect_url string, scopes []string) *GoogleProvider {
+	g.Scopes = strings.Join(scopes, " ")
+	g.ClientID = client_id
+	g.ClientSecret = client_secret
+	g.RedirectURI = redirect_url
+
+	var discoveryResp struct {
+		AuthURI  string `json:"authorization_endpoint"`
+		TokenURI string `json:"token_endpoint"`
+		JwksURI  string `json:"jwks_uri"`
+	}
+
+	res, err := http.Get("https://accounts.google.com/.well-known/openid-configuration")
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+	decoder := json.NewDecoder(res.Body)
+	if err := decoder.Decode(&discoveryResp); err != nil {
+		panic(fmt.Errorf("configuration discovery Failed: %v", err))
+	}
+	g.AuthURI = discoveryResp.AuthURI
+	g.TokenURI = discoveryResp.TokenURI
+	g.JWKsURI = discoveryResp.JwksURI
+
+	return g
 }
 
 func (p GoogleProvider) CreateAuthUrl(state, nonce string) string {
 	query_params := url.Values{}
 	query_params.Add("client_id", p.ClientID)
 	query_params.Add("redirect_uri", p.RedirectURI)
-	query_params.Add("scope", strings.Join(p.Scopes, " "))
+	query_params.Add("scope", p.Scopes)
 	query_params.Add("response_type", "code")
 	query_params.Add("state", state)
 	query_params.Add("nonce", nonce)
@@ -145,9 +173,11 @@ func (p GoogleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error
 		return nil, fmt.Errorf("Invalid Claims Format")
 	}
 
-	//if !strings.EqualFold("https://account.google.com", claims.Issuer) || strings.EqualFold(claims.Issuer, "account.google.com") {
-	//	return nil, fmt.Errorf("Invalid Token: invalid issuer ")
-	//}
+	if !strings.EqualFold("https://accounts.google.com", claims.Issuer) && !strings.EqualFold(claims.Issuer, "accounts.google.com") {
+		fmt.Println(!strings.EqualFold("https://accounts.google.com", claims.Issuer))
+		fmt.Println(!strings.EqualFold(claims.Issuer, "accounts.google.com"))
+		return nil, fmt.Errorf("Invalid Token: invalid issuer %s", claims.Issuer)
+	}
 
 	if claims.Audience[0] != p.ClientID {
 		return nil, fmt.Errorf("Invalid Audience")

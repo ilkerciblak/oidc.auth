@@ -9,15 +9,14 @@ import (
 func main() {
 	cfg := platform.LoadConfig()
 
-	google_provider := auth.GoogleProvider{
-		ClientID:     cfg.GOOGLE_CLIENT_ID,
-		ClientSecret: cfg.GOOGLE_CLIENT_SECRET,
-		AuthURI:      cfg.GOOGLE_AUTH_URI,
-		TokenURI:     cfg.GOOGLE_TOKEN_URI,
-		RedirectURI:  cfg.GOOGLE_REDIRECT_URI,
-		JWKsURI:      cfg.GOOGLE_JWKS_URI,
-		Scopes:       []string{"openid", "email"},
-	}
+	google_provider := auth.GoogleProvider{}
+
+	google_provider.Instrument(
+		cfg.GOOGLE_CLIENT_ID,
+		cfg.GOOGLE_CLIENT_SECRET,
+		cfg.GOOGLE_REDIRECT_URI,
+		[]string{"openid", "email"},
+	)
 
 	state_manager := auth.NewRedisStateManager()
 	jwt_manager := auth.JwtManager{

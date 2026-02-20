@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"auth-app/internal/service/user"
 	"net/http"
 	"time"
 )
@@ -9,6 +10,7 @@ type GoogleOIDCHandler struct {
 	GoogleProvider
 	*RedisStateManager
 	*JwtManager
+	*user.UserRepository
 }
 
 func (g GoogleOIDCHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -57,8 +59,23 @@ func (g GoogleOIDCHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token_str, err := g.GenerateToken(
+	auth_user, err := g.FindOrCreateUserByProvider(
+		r.Context(),
+		"google",
 		g_claims.Subject,
+		*user.NewUser(
+			g_claims.Email,
+			g_claims.Email,
+			g_claims.Email,
+		),
+	)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	token_str, err := g.GenerateToken(
+		auth_user.Id,
 		g_claims.Email,
 		g_claims.Email,
 		time.Duration(time.Minute*5),
@@ -69,7 +86,7 @@ func (g GoogleOIDCHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	refresh_token, err := g.GenerateToken(
-		g_claims.Subject,
+		auth_user.Id,
 		g_claims.Email,
 		g_claims.Email,
 		time.Duration(time.Minute*5),

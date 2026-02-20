@@ -3,14 +3,38 @@ package main
 import (
 	"auth-app/internal/platform"
 	"auth-app/internal/service/auth"
+	"auth-app/internal/service/user"
+	"context"
+	"fmt"
 	"net/http"
+
+	_ "github.com/lib/pq"
+	"github.com/pressly/goose/v3"
 )
 
 func main() {
 	cfg := platform.LoadConfig()
+	db, err := platform.Instrument(
+		context.Background(),
+		cfg.DB_URL,
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+
+	if err := goose.Up(
+		db.Connection,
+		"phase1-building-oidc-auth/migrations/",
+	); err != nil {
+		panic(fmt.Errorf("Failed to goose up: %v", err))
+	}
+
+	userRepo := user.UserRepository{
+		Db: db.Connection,
+	}
 
 	google_provider := auth.GoogleProvider{}
-
 	google_provider.Instrument(
 		cfg.GOOGLE_CLIENT_ID,
 		cfg.GOOGLE_CLIENT_SECRET,
@@ -26,6 +50,7 @@ func main() {
 		RedisStateManager: state_manager,
 		GoogleProvider:    google_provider,
 		JwtManager:        &jwt_manager,
+		UserRepository:    &userRepo,
 	}
 	http.HandleFunc("/home",
 		func(w http.ResponseWriter, r *http.Request) {

@@ -13,6 +13,7 @@ type appConfig struct {
 	GOOGLE_REDIRECT_URI  string `json:"google_redirect_uri"`
 	JWT_SECRET           string `json:"jwt_secret"`
 	GOOGLE_JWKS_URI      string `json:"google_jwks_uri"`
+	DB_URL               string `json:"db_url"`
 }
 
 func LoadConfig() *appConfig {
@@ -27,6 +28,7 @@ func LoadConfig() *appConfig {
 		GOOGLE_REDIRECT_URI:  getEnvString("GOOGLE_REDIRECT_URI", ""),
 		JWT_SECRET:           getEnvString("JWT_SECRET", ""),
 		GOOGLE_JWKS_URI:      getEnvString("GOOGLE_JWKS_URI", ""),
+		DB_URL:               getEnvString("DB_URL", ""),
 	}
 }
 

@@ -19,5 +19,20 @@ services:
     ports:
       - "6379:6379"
     command: --loglevel warning 
-    
+  postgres:
+    image: postgres
+    ports:
+      - "5342:5342"
+    container_name: user-db
+    environment:
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_USER=admin
+      - POSTGRES_DB=db
 
+  adminer:
+    image: adminer
+    ports:
+      - "8081:8080"
+    environment:
+      - ADMINER_DESIGN=dracula
+      - ADMINER_PLUGINS=backward-keys

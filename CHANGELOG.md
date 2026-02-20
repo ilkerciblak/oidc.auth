@@ -1,3 +1,17 @@
+## Phase [1.3.0]
+
+### Added
+- User business logic implemented, 
+    - Only covers *find or create user from provider*. 
+- Database connection is instrumented in order to manage user data.
+
+### Changed 
+- Provider handler dependecies: `UserRepository` injected.
+- Provider handler `Callback` method now checks if the user already signed in with provider and provider_uid.
+- Dev. environment: Postgres and Adminer images added.
+- Config platform, `DB_URL` attribute is added.
+
+
 ## Phase [1.2.0]
 
 ### Added

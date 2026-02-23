@@ -46,6 +46,7 @@ func Instrument(ctx context.Context, connection_string string) (*PostgresDB, err
 
 	var db *sql.DB
 	var err error
+	fmt.Println(connection_string)
 
 	for i := range 5 {
 		fmt.Printf("Attempting to open postgres connection: attempt#[%d]\n", i+1)

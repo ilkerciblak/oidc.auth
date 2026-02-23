@@ -1,6 +1,7 @@
 package user
 
 import (
+	"auth-app/internal/service/auth"
 	"context"
 	"database/sql"
 	"fmt"
@@ -35,8 +36,8 @@ SET last_login_with=$1
 WHERE provider=$2 and provider_user_id=$3;
 `
 
-func (r *UserRepository) FindOrCreateUserByProvider(ctx context.Context, provider, provider_uid string, fallbackUser User) (*User, error) {
-		fail := func(err error) (*User, error) {
+func (r *UserRepository) FindOrCreateUser(ctx context.Context, provider, provider_uid string) (  auth.User, error) {
+		fail := func(err error) (  auth.User, error) {
 		return nil, err
 	}
 
@@ -46,8 +47,8 @@ func (r *UserRepository) FindOrCreateUserByProvider(ctx context.Context, provide
 		return fail(fmt.Errorf("Failed to start transaction: %v", err))
 	}
 	defer tx.Rollback()
-
 	var user User
+	fallbackUser := user.NewUser() 
 	// Look for provider and user
 	if err := tx.QueryRowContext(
 		ctx,
@@ -67,23 +68,23 @@ func (r *UserRepository) FindOrCreateUserByProvider(ctx context.Context, provide
 			if _, err := tx.ExecContext(
 				ctx,
 				createUserQuery,
-				fallbackUser.Id,
-				fallbackUser.DisplayName,
-				fallbackUser.Email,
-				fallbackUser.Phone,
-				fallbackUser.LastLoginAt,
-				fallbackUser.IsVerified,
+				fallbackUser.GetId(),
+				fallbackUser.GetDisplayName(),
+				fallbackUser.GetEmail(),
+				fallbackUser.GetPhone(),
+				fallbackUser.GetLastLoginAt(),
+				fallbackUser.GetIsVerified(),
 			); err != nil {
 				return fail(fmt.Errorf("[CreateUser@Tx]: %v", err))
 			}
 
 			// create auth-provider
-			newProvider := NewProvider(fallbackUser.Id, provider, provider_uid)
+			newProvider := NewProvider(fallbackUser.GetId(), provider, provider_uid)
 			if _, err := tx.ExecContext(
 				ctx,
 				createAuthProviderQuery,
 				newProvider.Id,
-				fallbackUser.Id,
+				fallbackUser.GetId(),
 				provider,
 				provider_uid,
 				time.Now(),
@@ -93,7 +94,7 @@ func (r *UserRepository) FindOrCreateUserByProvider(ctx context.Context, provide
 			if err := tx.Commit(); err != nil {
 				return fail(err)
 			}
-			return &fallbackUser, nil
+			return  fallbackUser, nil
 
 		}
 		return fail(err)

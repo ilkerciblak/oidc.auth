@@ -1,6 +1,9 @@
 package auth
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type UserManager interface {
 	FindOrCreateUser(
@@ -12,5 +15,11 @@ type UserManager interface {
 
 type User interface {
 	GetId() string
+	GetEmail() string
+	GetRole() string
+	GetDisplayName() string
+	GetPhone() string
+	GetLastLoginAt() time.Time 
+	GetIsVerified() bool 
 	NewUser() User
 }

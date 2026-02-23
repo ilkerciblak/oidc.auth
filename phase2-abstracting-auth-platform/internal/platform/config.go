@@ -14,6 +14,7 @@ type appConfig struct {
 	JWT_SECRET           string `json:"jwt_secret"`
 	GOOGLE_JWKS_URI      string `json:"google_jwks_uri"`
 	DB_URL               string `json:"db_url"`
+	GOOGLE_DISCOVER_URI  string `json:"google_discover_uri"`
 }
 
 func LoadConfig() *appConfig {
@@ -29,6 +30,7 @@ func LoadConfig() *appConfig {
 		JWT_SECRET:           getEnvString("JWT_SECRET", ""),
 		GOOGLE_JWKS_URI:      getEnvString("GOOGLE_JWKS_URI", ""),
 		DB_URL:               getEnvString("DB_URL", ""),
+		GOOGLE_DISCOVER_URI:  getEnvString("GOOGLE_DISCOVER_URI", "https://accounts.google.com/.well-known/openid-configuration"),
 	}
 }
 

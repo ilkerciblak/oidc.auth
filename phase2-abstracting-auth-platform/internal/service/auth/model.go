@@ -9,6 +9,7 @@ type Provider interface {
 	VerifyIdToken(id_token string) (ProviderClaims, error)
 	ExchangeCode(access_code string) (AuthToken, error)
 	GetName() string
+	DoesSupportOIDC() bool
 }
 
 type AuthToken interface {

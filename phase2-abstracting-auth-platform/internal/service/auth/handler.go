@@ -19,6 +19,8 @@ func (h OIDCHandler) Login(w http.ResponseWriter, r *http.Request) {
 		state,
 		"",
 	)
+
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -50,18 +52,35 @@ func (h OIDCHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// VerifyIDToken
-	provider_claims, err := h.Provider.VerifyIdToken(
-		provider_token.GetIdToken(),
-	)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
+	var provider_uid string
+	// There should be a seperation over OIDC supporting and OAuth2 supporting providers until user repo operation
+	if h.Provider.DoesSupportOIDC() {
+		provider_claims, err := h.Provider.VerifyIdToken(
+			provider_token.GetIdToken(),
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		provider_uid, err = provider_claims.GetSubject()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+	} else {
 
-	provider_uid, err := provider_claims.GetSubject()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
+		provider_claims, err := h.Provider.VerifyIdToken(
+			provider_token.GetAccessToken(),
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		provider_uid, err = provider_claims.GetSubject()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
 	}
 
 	auth_user, err := h.UserManager.FindOrCreateUser(

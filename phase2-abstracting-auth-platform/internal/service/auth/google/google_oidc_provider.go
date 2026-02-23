@@ -31,6 +31,10 @@ func GoogleOIDCProvider(configFuncs ...auth.WithProviderConfig) *googleOIDCProvi
 	}
 }
 
+func (g *googleOIDCProvider) DoesSupportOIDC() bool {
+	return true
+}
+
 func (g *googleOIDCProvider) GetName() string {
 	return "google"
 }

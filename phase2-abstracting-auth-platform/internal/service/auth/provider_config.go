@@ -26,6 +26,20 @@ type ProviderConfig struct {
 
 type WithProviderConfig func(*ProviderConfig) *ProviderConfig
 
+func WithAuthURI(auth_uri string) WithProviderConfig {
+	return func(pc *ProviderConfig) *ProviderConfig {
+		pc.AuthURI = auth_uri
+		return pc
+	}
+}
+
+func WithTokenURI(token_uri string) WithProviderConfig {
+	return func(pc *ProviderConfig) *ProviderConfig {
+		pc.TokenURI = token_uri
+		return pc
+	}
+}
+
 func WithClientID(client_id string) WithProviderConfig {
 	return func(pc *ProviderConfig) *ProviderConfig {
 		pc.ClientID = client_id
@@ -53,13 +67,10 @@ func WithCallbackURI(client_id string) WithProviderConfig {
 }
 func WithScopes(scopes []string) WithProviderConfig {
 	return func(pc *ProviderConfig) *ProviderConfig {
-		pc.Scopes = scopes 
+		pc.Scopes = scopes
 		return pc
 	}
 }
-
-
-
 
 func (p *ProviderConfig) GetScopes() string {
 	return strings.Join(p.Scopes, " ")

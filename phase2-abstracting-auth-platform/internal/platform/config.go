@@ -15,6 +15,8 @@ type appConfig struct {
 	GOOGLE_JWKS_URI      string `json:"google_jwks_uri"`
 	DB_URL               string `json:"db_url"`
 	GOOGLE_DISCOVER_URI  string `json:"google_discover_uri"`
+	GITHUB_CLIENT_ID     string `json:"github_client_id"`
+	GITHUB_CLIENT_SECRET string `json:"github_client_secret"`
 }
 
 func LoadConfig() *appConfig {
@@ -31,6 +33,8 @@ func LoadConfig() *appConfig {
 		GOOGLE_JWKS_URI:      getEnvString("GOOGLE_JWKS_URI", ""),
 		DB_URL:               getEnvString("DB_URL", ""),
 		GOOGLE_DISCOVER_URI:  getEnvString("GOOGLE_DISCOVER_URI", "https://accounts.google.com/.well-known/openid-configuration"),
+		GITHUB_CLIENT_ID:     getEnvString("GITHUB_CLIENT_ID", ""),
+		GITHUB_CLIENT_SECRET: getEnvString("GITHUB_CLIENT_SECRET", ""),
 	}
 }
 

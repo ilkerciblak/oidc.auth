@@ -4,6 +4,7 @@ import (
 	"auth-app/internal/platform"
 	"auth-app/internal/service/auth"
 	"auth-app/internal/service/auth/adapter"
+	"auth-app/internal/service/auth/github"
 	"auth-app/internal/service/auth/google"
 	"auth-app/internal/service/user"
 	"context"
@@ -45,6 +46,15 @@ func main() {
 		auth.WithDiscoverURI(cfg.GOOGLE_DISCOVER_URI),
 	)
 
+	github_provider := github.GithubOAuthProvider(
+		auth.WithCallbackURI("http://localhost:8001/github/callback"),
+		auth.WithClientID(cfg.GITHUB_CLIENT_ID),
+		auth.WithClientSecret(cfg.GITHUB_CLIENT_SECRET),
+		auth.WithScopes([]string{"read:user"}),
+		auth.WithAuthURI("https://github.com/login/oauth/authorize"),
+		auth.WithTokenURI("https://github.com/login/oauth/access_token"),
+	)
+
 	state_manager := adapter.RedisStateStore("redis_State:6379", "", 0)
 	jwt_manager := adapter.JWTTokenManager(cfg.JWT_SECRET)
 	google_oidc_handler := auth.OIDCHandler{
@@ -54,11 +64,19 @@ func main() {
 		UserManager:  &userRepo,
 	}
 
+	github_handler := auth.OIDCHandler{
+		StateManager: state_manager,
+		Provider:     github_provider,
+		TokenManager: jwt_manager,
+		UserManager:  &userRepo,
+	}
+
 	http.HandleFunc(
 		"/",
 		LoginScreenHTML,
 	)
-
+	http.HandleFunc("GET /github/auth", github_handler.Login)
+	http.HandleFunc("/github/callback", github_handler.Callback)
 	http.HandleFunc("GET /google/auth", google_oidc_handler.Login)
 	http.HandleFunc(
 		`/auth/google/callback`,
@@ -73,10 +91,10 @@ func main() {
 	go func() {
 		if err := http.ListenAndServe(
 			fmt.Sprintf(":%s", cfg.PORT),
-		nil,
-	); err != nil {
-		errChan<-err
-	}
+			nil,
+		); err != nil {
+			errChan <- err
+		}
 	}()
 
 	if err := <-errChan; err != nil {
@@ -85,10 +103,9 @@ func main() {
 		os.Exit(0)
 	}
 
-	
 }
 
 // Directly uses `index.html` file
 func LoginScreenHTML(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w,r, "/app/static_files/index.html")
+	http.ServeFile(w, r, "/app/static_files/index.html")
 }

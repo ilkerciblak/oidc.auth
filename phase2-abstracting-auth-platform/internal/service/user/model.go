@@ -18,8 +18,12 @@ type User struct {
 
 func (u User) NewUser() auth.User {
 	return User{
-		Id:         uuid.NewString(),
-		IsVerified: true,
+		Id:          uuid.NewString(),
+		DisplayName: uuid.NewString(),
+		Email:       uuid.NewString(),
+		Phone:       uuid.NewString(),
+		LastLoginAt: time.Now(),
+		IsVerified:  true,
 	}
 }
 

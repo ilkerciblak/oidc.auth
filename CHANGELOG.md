@@ -1,3 +1,13 @@
+## Phase [2.0.0]
+
+### Added
+- Github Oauth2 Support is added
+- [UserManager](./phase2-abstracting-auth-platform/internal/services/auth/user_manager.go) is added. FindOrCreate user business logic is abstracted to use it in auth service.
+
+### Changed
+- Auth service is abstracted with domain entities and layer interfaces
+- Handler layer is added in order to populate with different providers, [see new handler](./phase2-abstracting-auth-platform/internal/services/auth/handler.go)
+
 ## Phase [1.3.0]
 
 ### Added

@@ -69,7 +69,6 @@ func (p *googleOIDCProvider) VerifyIdToken(id_token string) (auth.ProviderClaims
 			if !k {
 				return nil, fmt.Errorf("public key not found for kid: %s", kid)
 			}
-			fmt.Println("Nope")
 			return public_key, nil
 		},
 	)

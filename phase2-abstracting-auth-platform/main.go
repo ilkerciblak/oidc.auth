@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	_ "github.com/lib/pq"
 	"github.com/pressly/goose/v3"
@@ -53,30 +54,41 @@ func main() {
 		UserManager:  &userRepo,
 	}
 
-	http.HandleFunc("/home",
-		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "/app/static_files/home.html")
-		},
-	)
-
 	http.HandleFunc(
 		"/",
 		LoginScreenHTML,
 	)
 
-	http.HandleFunc("/google/auth", google_oidc_handler.Login)
+	http.HandleFunc("GET /google/auth", google_oidc_handler.Login)
 	http.HandleFunc(
 		`/auth/google/callback`,
 		google_oidc_handler.Callback,
 	)
-
-	http.ListenAndServe(
-		fmt.Sprintf(":%s", cfg.PORT),
-		nil,
+	http.HandleFunc("/home",
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "/app/static_files/home.html")
+		},
 	)
+	errChan := make(chan error, 1)
+	go func() {
+		if err := http.ListenAndServe(
+			fmt.Sprintf(":%s", cfg.PORT),
+		nil,
+	); err != nil {
+		errChan<-err
+	}
+	}()
+
+	if err := <-errChan; err != nil {
+		fmt.Println("LA")
+		fmt.Println(err)
+		os.Exit(0)
+	}
+
+	
 }
 
 // Directly uses `index.html` file
 func LoginScreenHTML(w http.ResponseWriter, r *http.Request) {
-	http.FileServer(http.Dir("/app/static_files/")).ServeHTTP(w, r)
+	http.ServeFile(w,r, "/app/static_files/index.html")
 }

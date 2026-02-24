@@ -88,7 +88,7 @@ func (p *ProviderConfig) Discover() {
 
 	res, err := http.Get(p.DiscoverURI)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("failed fetch request to discover URI"))
 	}
 
 	defer res.Body.Close()

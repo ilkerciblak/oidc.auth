@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -20,6 +21,7 @@ func (h OIDCHandler) Login(w http.ResponseWriter, r *http.Request) {
 		"",
 	)
 
+	fmt.Println(authUrl)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

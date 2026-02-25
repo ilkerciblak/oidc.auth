@@ -21,7 +21,6 @@ func FacebookAuthProvider(config_funcs ...auth.WithProviderConfig) *facebookAuth
 	for _, f := range config_funcs {
 		cfg = f(cfg)
 	}
-	
 
 	return &facebookAuthProvider{
 		config: cfg,
@@ -62,7 +61,7 @@ func (p *facebookAuthProvider) VerifyIdToken(id_token string) (auth.ProviderClai
 			}
 
 			kid, k := t.Header["kid"].(string)
-if !k {
+			if !k {
 				return nil, fmt.Errorf("kid is not found")
 			}
 
@@ -75,19 +74,19 @@ if !k {
 
 		},
 	)
-	if err != nil{
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse token %v", err)
 	}
 
 	claims, k := token.Claims.(*facebookAuthClaims)
-if !k{
+	if !k {
 		return nil, fmt.Errorf("invalid claims format")
 	}
 
-	if claims.ExpiresAt.Before(time.Now()){
+	if claims.ExpiresAt.Before(time.Now()) {
 		return nil, fmt.Errorf("token is expired")
 	}
-	
+
 	return claims, nil
 }
 

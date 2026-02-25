@@ -4,6 +4,7 @@ import (
 	"auth-app/internal/platform"
 	"auth-app/internal/service/auth"
 	"auth-app/internal/service/auth/adapter"
+	"auth-app/internal/service/auth/facebook"
 	"auth-app/internal/service/auth/github"
 	"auth-app/internal/service/auth/google"
 	"auth-app/internal/service/user"
@@ -37,11 +38,21 @@ func main() {
 	userRepo := user.UserRepository{
 		Db: db.Connection,
 	}
+	facebook_provider := facebook.FacebookAuthProvider(
+		auth.WithClientID(cfg.FACEBOOK_CLIENT_ID),
+		auth.WithClientSecret(cfg.FACEBOOK_CLIENT_SECRET),
+		auth.WithCallbackURI(cfg.FACEBOOK_REDIRECT_URI),
+		auth.WithScopes([]string{"openid"}),
+		auth.WithDiscoverURI(cfg.FACEBOOK_DISCOVER_URI),
+		auth.WithAuthURI("https://facebook.com/dialog/oauth/"),
+		auth.WithTokenURI("https://graph.facebook.com/v11.0/oauth/access_token"),
+		auth.WithJWKsURI("https://www.facebook.com/.well-known/oauth/openid/jwks/"),
+	)
 
 	google_provider := google.GoogleOIDCProvider(
 		auth.WithClientID(cfg.GOOGLE_CLIENT_ID),
-		auth.WithCallbackURI(cfg.GOOGLE_REDIRECT_URI),
 		auth.WithClientSecret(cfg.GOOGLE_CLIENT_SECRET),
+		auth.WithCallbackURI(cfg.GOOGLE_REDIRECT_URI),
 		auth.WithScopes([]string{"openid", "email"}),
 		auth.WithDiscoverURI(cfg.GOOGLE_DISCOVER_URI),
 	)
@@ -71,12 +82,25 @@ func main() {
 		UserManager:  &userRepo,
 	}
 
+	facebook_handler := auth.OIDCHandler{
+		StateManager: state_manager,
+		Provider:     facebook_provider,
+		TokenManager: jwt_manager,
+		UserManager:  &userRepo,
+	}
+
 	http.HandleFunc(
 		"/",
 		LoginScreenHTML,
 	)
+
+	http.HandleFunc("GET /facebook/auth", facebook_handler.Login)
+
+	http.HandleFunc("/auth/facebook/callback", facebook_handler.Callback)
+
 	http.HandleFunc("GET /github/auth", github_handler.Login)
 	http.HandleFunc("/github/callback", github_handler.Callback)
+
 	http.HandleFunc("GET /google/auth", google_oidc_handler.Login)
 	http.HandleFunc(
 		`/auth/google/callback`,

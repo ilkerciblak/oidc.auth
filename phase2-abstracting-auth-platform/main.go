@@ -46,6 +46,7 @@ func main() {
 		auth.WithDiscoverURI(cfg.FACEBOOK_DISCOVER_URI),
 		auth.WithAuthURI("https://facebook.com/dialog/oauth/"),
 		auth.WithTokenURI("https://graph.facebook.com/v11.0/oauth/access_token"),
+		auth.WithJWKsURI("https://www.facebook.com/.well-known/oauth/openid/jwks/"),
 	)
 
 	google_provider := google.GoogleOIDCProvider(
@@ -95,12 +96,11 @@ func main() {
 
 	http.HandleFunc("GET /facebook/auth", facebook_handler.Login)
 
-	http.HandleFunc("auth/facebook/callback", facebook_handler.Callback)
-
+	http.HandleFunc("/auth/facebook/callback", facebook_handler.Callback)
 
 	http.HandleFunc("GET /github/auth", github_handler.Login)
 	http.HandleFunc("/github/callback", github_handler.Callback)
-	
+
 	http.HandleFunc("GET /google/auth", google_oidc_handler.Login)
 	http.HandleFunc(
 		`/auth/google/callback`,

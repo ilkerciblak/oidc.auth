@@ -26,6 +26,14 @@ type ProviderConfig struct {
 
 type WithProviderConfig func(*ProviderConfig) *ProviderConfig
 
+
+func WithJWKsURI(jwks_uri string) WithProviderConfig {
+	return func(pc *ProviderConfig) *ProviderConfig {
+		pc.JWKsURI = jwks_uri
+		return pc
+	}
+}
+
 func WithAuthURI(auth_uri string) WithProviderConfig {
 	return func(pc *ProviderConfig) *ProviderConfig {
 		pc.AuthURI = auth_uri

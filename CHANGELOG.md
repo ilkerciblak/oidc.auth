@@ -5,7 +5,7 @@
 - `UserInfo` support added to `Provider Interface` and implementations
 
 ### Changed
-- [Handler layer's](./phase3-implementing-packages/internal/services/auth/handler.go) `Callback` behavior is changed. Oauth2 and OIDC flows requires different flows
+- [Handler layer's](./phase3-implementing-packages/internal/service/auth/handler.go) `Callback` behavior is changed. Oauth2 and OIDC flows requires different flows
 
 ### Removed
 - Provider Config struct and its methods, implemented packages auto-configures those now.
@@ -15,11 +15,11 @@
 
 ### Added
 - Github Oauth2 Support is added
-- [UserManager](./phase2-abstracting-auth-platform/internal/services/auth/user_manager.go) is added. FindOrCreate user business logic is abstracted to use it in auth service.
+- [UserManager](./phase2-abstracting-auth-platform/internal/service/auth/user_manager.go) is added. FindOrCreate user business logic is abstracted to use it in auth service.
 
 ### Changed
 - Auth service is abstracted with domain entities and layer interfaces
-- Handler layer is added in order to populate with different providers, [see new handler](./phase2-abstracting-auth-platform/internal/services/auth/handler.go)
+- Handler layer is added in order to populate with different providers, [see new handler](./phase2-abstracting-auth-platform/internal/service/auth/handler.go)
 
 ## Phase [1.3.0]
 

@@ -1,3 +1,16 @@
+## Phase [3.0.0]
+
+### Added
+- `go-oidc` and `x/oauth2` packages are implemented
+- `UserInfo` support added to `Provider Interface` and implementations
+
+### Changed
+- [Handler layer's](./phase3-implementing-packages/internal/services/auth/handler.go) `Callback` behavior is changed. Oauth2 and OIDC flows requires different flows
+
+### Removed
+- Provider Config struct and its methods, implemented packages auto-configures those now.
+
+
 ## Phase [2.0.0]
 
 ### Added

@@ -7,8 +7,7 @@
 >   -  Phase 1.2 : Implementing OpenID Connect Discovery 1.0
 >   -  Phase 1.3 : Implementing user business logic
 > 2. Phase 2: Refactoring the application with some abstraction layers and implementing additional oidc provider e.g. `GitHub`
-> 3. Phase 3: Refactoring the application with implementing `oauth2` package
-> 4. Phase 4: Refactoring the application with implementing `oidc` package  
+> 3. Phase 3: Refactoring the application with implementing `oauth2` and `oidc` package
 
 
 > [!WARNING]

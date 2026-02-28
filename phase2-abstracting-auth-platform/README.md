@@ -7,11 +7,13 @@
 In order to introduce testable, design and implementation efficiency, and encapsulation, in *Phase 2* some abstraction will be implemented to our authenticatin service. 
 
 Since `oidc and oauth2` protocols introduces same rules to follow up, the authentication business domain can be split into some interfaces and domain types to use with multiple implementations. According to that, authentication flow can be split into following concepts
-    - **Provider Model Interface**: Encapsulates the authorization endpoint construction, code exchange and id_token validation processes by means of each provider suggestions
-    - **Provider Config Struct**: Provides re-usable configuration mechanism for all provides to configure variables as `client_id and secrets` also `jwks public keys`
-    - **State Store Interface**: Encapsulates the `state parameter` generation, validation and deletion processes.
-    - **User Manager Interface**: Encapsulates the `user business logic`. Since this project only scopes user authentication with federated social providers, our interface will only consist of `find or create new user` logic.
-    - **Token Manager Interface**: Encapsulates the `token based authentication` business logic. In order to provide secure authentication, after federated login logic our application will return its own token to user.
+
+- **Provider Model Interface**: Encapsulates the authorization endpoint construction, code exchange and id_token validation processes by means of each provider suggestions
+
+- **Provider Config Struct**: Provides re-usable configuration mechanism for all provides to configure variables as `client_id and secrets` also `jwks public keys`
+- **State Store Interface**: Encapsulates the `state parameter` generation, validation and deletion processes.
+- **User Manager Interface**: Encapsulates the `user business logic`. Since this project only scopes user authentication with federated social providers, our interface will only consist of `find or create new user` logic.
+- **Token Manager Interface**: Encapsulates the `token based authentication` business logic. In order to provide secure authentication, after federated login logic our application will return its own token to user.
 
 Furthermore, in `adapter/` reader can findout the interface implementations for *State Manager and Token Manager*. Provider implementations will be placed under their own folders e.g. `google/` or `github/`.
 
@@ -149,7 +151,7 @@ type Provider interface {
 
 Our `GoogleOIDCProvider` has only one dependency in `ProviderConfig` type. `ProviderConfig` struct introduces an important public method that provides `fetching and caching provider public keys` besides public setter methods. These setter methods will be used in provider definition part.
 
-3. Since `oidc` declares a set of rules for authentication flow, instead of defining a `handler interface` decided to define a `handler struct` with `Login and Callback` re-usable methods.
+3. Since `oidc` declares a set of rules for authentication flow, instead of defining a `handler interface` decided to define a `handler struct` with `Login and Callback` re-usable methods. See [handler struct](./internal/service/auth/handler.go)
 
 That approach provided re-usable handler functions with clear dependency injections for each provider. On the other hand, only downside of this approach was occuring with `oauth2 based providers`. Since OAuth2 based providers does not issue `id_token` in result pf code exchange process, their `user info endpoint` should be used to retrieve user information details. ([See the ADR about it](../phase3-imlementing-packages/docs/adr/ADR-0002-Provider-Interface-Change.md)) 
 

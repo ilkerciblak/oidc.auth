@@ -14,6 +14,14 @@
 > 
 > This project is not `production ready` due no extra security layers are included e.g. no observability or proper exception handling implemented. This repository only includes the R&D on `OpenID Connect Protocol`. 
 
+## Overview
+
+As mentioned, scope of this project is to *learning while building* the `OpenID Connection and OAuth2.0` topics. Following that concept, this documentation will only cover [How OIDC Protocol Works](## OIDC: OpenID Connect Protocol). In order to follow implementation details reader can visit each implementation documentations which are:
+    - [Phase1 implementation details](./phase1-building-oidc-auth/README.md) 
+    - [Phase2 implementation details](./phase2-abstracting-auth-platform/README.md) 
+    - [Phase3 implementation details](./phase3-implementing-packages/README.md)
+
+Also, differences are issued in [CHANGLELOG](./CHANGELOG.md), to provide clear version history.
 
 ## OIDC: OpenID Connect Protocol
 OpenID Connection Protocol, OIDC, is an identity layer wrapped aroundthe `OAuth 2.0` framework. While OAuth2 mainly aiming providing resource authorization, main purpose of the OIDC is to providing authentication over federated platforms. Once user demands to log with federated identity, they got re-directed to that third parties auth page to identify themselves and return back with their basic profile information. Furthermore, besides authentication and basic profile information different scopes can be used to reach further user data resource.

@@ -1,37 +1,63 @@
 
 
-# Phase1: Building Simple Authentication Server with OIDC Support
+# Phase2: Implementing Abstraction Layers to Authentication Service
 
 ## Overview
 
-In *Phase 1*, development survey will include building simple authentication server with `Google OIDCsupport` implemented. Abstraction of the oidc flow will be skipped to present whole mechanism. Thus development will be architected as only `GoogleOIDCProvider` will be implemented and used. On the other hand, SOLID principles are covered at most.
+In order to introduce testable, design and implementation efficiency, and encapsulation, in *Phase 2* some abstraction will be implemented to our authenticatin service. 
 
-Following parts of this documentation, reader can figure out how the `oidc` flows around the project.Documentation will split the presentation to layers of project which are 
+Since `oidc and oauth2` protocols introduces same rules to follow up, the authentication business domain can be split into some interfaces and domain types to use with multiple implementations. According to that, authentication flow can be split into following concepts
+    - **Provider Model Interface**: Encapsulates the authorization endpoint construction, code exchange and id_token validation processes by means of each provider suggestions
+    - **Provider Config Struct**: Provides re-usable configuration mechanism for all provides to configure variables as `client_id and secrets` also `jwks public keys`
+    - **State Store Interface**: Encapsulates the `state parameter` generation, validation and deletion processes.
+    - **User Manager Interface**: Encapsulates the `user business logic`. Since this project only scopes user authentication with federated social providers, our interface will only consist of `find or create new user` logic.
+    - **Token Manager Interface**: Encapsulates the `token based authentication` business logic. In order to provide secure authentication, after federated login logic our application will return its own token to user.
+
+Furthermore, in `adapter/` reader can findout the interface implementations for *State Manager and Token Manager*. Provider implementations will be placed under their own folders e.g. `google/` or `github/`.
 
  
-## Project Structure: Phase 1.0.0
+## Project Structure: Phase 2.0.0
 ```bash
-phase1-building-oidc-auth
 ├── go.mod
 ├── go.sum
 ├── internal
 │   ├── platform
-│   │   └── config.go # Environment Variables Manager
+│   │   ├── config.go
+│   │   ├── database.go
+│   │   └── str_ops.go
 │   └── service
 │       ├── auth
-│       │   ├── handler.go # LoginWGoogle, Callback endpoints
-│       │   ├── models.go # Domain Entites
-│       │   ├── provider.go # Google Provider Client Model
-│       │   ├── state_manager.go # State Manager 
-│       │   └── token.go # Token Manager
+│       │   ├── adapter
+│       │   │   ├── jwt_token_manager.go
+│       │   │   └── redis_state_store.go
+│       │   ├── facebook
+│       │   │   ├── facebook_oidc_provider.go
+│       │   │   └── token.go
+│       │   ├── github
+│       │   │   ├── github_oauth2_provider.go
+│       │   │   └── token.go
+│       │   ├── google
+│       │   │   ├── google_oidc_provider.go
+│       │   │   └── token.go
+│       │   ├── handler.go
+│       │   ├── model.go
+│       │   ├── provider_config.go
+│       │   ├── state_store.go
+│       │   ├── token.go
+│       │   └── user_manager.go
 │       └── user
-├── main.go # Main entrence of the application
-└── README.md
+│           ├── model.go
+│           └── repository.go
+├── main.go
+├── migrations
+│   └── 00001_init_user.sql
+├── README.md
 ```
 
 ## Features
 
 - **Google OIDC Login**: Secure user login with Google Support
+- **GitHub OAuth2 Login using UserInfo Endpoint: 
 
 ## Tech Stack and Libraries
 In phase 1.0.0, project only involves of a **HTTP RESTful Server API** developed with *Golang* with following packages:
@@ -43,7 +69,26 @@ In phase 1.0.0, project only involves of a **HTTP RESTful Server API** developed
 - `crypto/sha256` - Hashing
 - `time` - Expiration check
 
-## Required Environment Variables
+## QuickStart
+
+### Prerequisities
+
+- **Docker**: for development environment and running in container 
+
+### Installation and Running
+1. Clone the repository
+```bash
+git clone https://github.com/ilkerciblak/oidc.auth
+```
+
+2. Set up the environment variables
+
+- Create `.env` file in project directory
+```bash
+cd project-directory && touch .env
+```
+
+### Required Environment Variables
 ```.env
 # APP
 HOST=required
@@ -62,337 +107,83 @@ GOOGLE_JWKS_URI=required
 
 JWT_SECRET=required
 ```
-See [Google Cloud Client Page]() to create and/or obtain your client information. _cannot give mine 🦆._
+
+3. Environment setup and running the container
+
+```bash
+cd project-directory
+docker compose -f dev.docker-compose.yml up -d
+```
+
+4. Running the phase2 using Makefile in container
+```bash
+cd project-directory
+docker exec -it auth-dev make run-2
+```
 
 ## Architectural Overview
 
-Since authentication flow described in the [main README file](../README.md). This documentation aimed to explain the package structure.
+### How it works?
 
-### Presentation Layer: GoogleOIDCHandler 
+In order to provide follow along documentation, an example implementation will be given.
 
-In order to adopt *dependency inversion*, `GoogleOIDCHandler` is the object where package deals it dependency injections. Also client facing endpoints, such as `Login and Callback` will be defined here.
+### Implementing Google Sign In Feature with OIDC 
 
-GoogleOIDCHandler will have three dependencies, 
-
-- The GoogleProvider object
-- StateManager to create and validate `state` parameter
-- JWTManager to create and validate `JWT`
-
-In addition to that, handler functions
-- **Login**: The handler receives end-users sign-in demand, generating `nonce` and `state` parameters and redirecting client to the oidc provider's auth screen.
-- **Callback**: The `redirect_url` that oidc providers mandated to request with `authorization code` and `state` parameters. Within this handler function, `state` parameter can be validated and `authorization code exchanging process` can be done. After code exchange process we can decode the `id_token`and provide `access_token` and `refresh_token` to our end-user with redirecting them to some `home` page.
-
-
+1. Provider interface implies
 ```go
-type GoogleOIDCHandler struct {
-	GoogleProvider
-	*StateManager
-	*JwtManager
-}
-
-func (g GoogleOIDCHandler) Login(w http.ResponseWriter, r *http.Request) {
-	state, err := g.GenerateState()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	nonce := ""
-	authUrl := g.CreateAuthUrl(
-		state,
-		nonce,
-	)
-
-	http.Redirect(
-		w,
-		r,
-		authUrl,
-		http.StatusFound,
-	)
-}
-
-func (g GoogleOIDCHandler) Callback(w http.ResponseWriter, r *http.Request) {
-	state := r.URL.Query().Get("state")
-	// nonce := r.URL.Query().Get("nonce")
-	code := r.URL.Query().Get("code")
-
-	if err := g.ValidateState(state); err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-	}
-
-	g_token, err := g.ExchangeCode(code)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-	}
-
-	g_claims, err := g.VerifyIdToken(g_token.IdToken)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
-		return
-	}
-
-	token_str, err := g.GenerateToken(
-		g_claims.Subject,
-		g_claims.Email,
-		g_claims.Email,
-		time.Duration(time.Minute*5),
-	)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	refresh_token, err := g.GenerateToken(
-		g_claims.Subject,
-		g_claims.Email,
-		g_claims.Email,
-		time.Duration(time.Minute*5),
-	)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	http.SetCookie(
-		w,
-		&http.Cookie{
-			Name:     "access_token",
-			Value:    token_str,
-			SameSite: http.SameSiteStrictMode,
-			Secure:   false, // development environment helloo 🙋🏽‍♂️
-			HttpOnly: true,
-		},
-	)
-
-	http.SetCookie(
-		w,
-		&http.Cookie{
-			Name:     "refresh_token",
-			Value:    refresh_token,
-			SameSite: http.SameSiteStrictMode,
-			Secure:   false, // development environment helloo 🙋🏽‍♂️
-			HttpOnly: true,
-		},
-	)
-
-	http.Redirect(w, r, "/home", http.StatusFound)
+type Provider interface {
+    // Construct the provider specific authentication_url or returns error
+	GetAuthUrl(state, nonce string) (string, error)
+    // Encapsulates provider specific id_token verification logic
+	VerifyIdToken(id_token string) (ProviderClaims, error)
+    // Encapsulates code exchange business logic
+	ExchangeCode(access_code string) (AuthToken, error)
+    // returns provider name in order to use in user business logic
+	GetName() string
+    // returns boolean information about whether provider is oidc or oauth2 based 
+	DoesSupportOIDC() bool
 }
 ```
 
-### Application Layer: GoogleProvider
+2. To implement this interface, our `GoogleOIDCProvider` looks like [this](./internal/service/auth/google/google_oidc_provider.go)
 
-For Phase 1.x, abstractions are skipped. Thus application layer will only consists of `GoogleProvider` instrumentation. Since provider discovery mechanism is not used yet, endpoints are hard-coded to `.env` file. Consequently, using environment variables, provider attributes will be set.
+Our `GoogleOIDCProvider` has only one dependency in `ProviderConfig` type. `ProviderConfig` struct introduces an important public method that provides `fetching and caching provider public keys` besides public setter methods. These setter methods will be used in provider definition part.
 
-For now, GoogleProvider model will provide `CreateAuthUrl`, `VerifyIdToken` and `ExchangeCode` publicmethods, which are constructs oidc authentication flow for that provider.
+3. Since `oidc` declares a set of rules for authentication flow, instead of defining a `handler interface` decided to define a `handler struct` with `Login and Callback` re-usable methods.
 
-One important point to explain, as  [OpenID Connection Specs](https://openid.net/specs/openid-connect-core-1_0.html#CodeIDToken) declares, an `id_token` exchanged for `authorization_code` is a JWT token that provides standard and provider specific (based on `scope` parameter) user claims to usein client party to authenticate end-user. Client party must validate and decrypt the `id_token` with the signature in the algorithm specified in the provider JWS response.   
+That approach provided re-usable handler functions with clear dependency injections for each provider. On the other hand, only downside of this approach was occuring with `oauth2 based providers`. Since OAuth2 based providers does not issue `id_token` in result pf code exchange process, their `user info endpoint` should be used to retrieve user information details. ([See the ADR about it](../phase3-imlementing-packages/docs/adr/ADR-0002-Provider-Interface-Change.md)) 
 
+4. Provider instrumentation in `main.go`
 ```go
-type TokenResponse struct {
-	IdToken      string `json:"id_token"`
-	AccessToken  string `json:"access_token"`
-	ExpiresIn    int    `json:"expires_in"`
-	Scope        string `json:"scope"`
-	TokenType    string `json:"token_type"`
-	RefreshToken string `json:"refresh_token"`
-}
-type jwk struct {
-	Use string `json:"use"`
-	Kid string `json:"kid"`
-	Alg string `json:"alg"`
-	Kty string `json:"kty"`
-	E   string `json:"e"`
-	N   string `json:"n"`
-}
+// dependencies
+state_manager := adapter.RedisStateStore("redis_State:6379", "", 0)
+jwt_manager := adapter.JWTTokenManager(cfg.JWT_SECRET)
 
-type jwksResponse struct {
-	Keys []jwk `json:"keys"`
-}
-```
+// provider
+google_provider := google.GoogleOIDCProvider(
+	auth.WithClientID(cfg.GOOGLE_CLIENT_ID),
+	auth.WithClientSecret(cfg.GOOGLE_CLIENT_SECRET),
+	auth.WithCallbackURI(cfg.GOOGLE_REDIRECT_URI),
+	auth.WithScopes([]string{"openid", "email"}),
+	auth.WithDiscoverURI(cfg.GOOGLE_DISCOVER_URI),
+)
 
-
-In [Google OIDC Document](https://developers.google.com/identity/openid-connect/openid-connect) it ismentioned that _Google changes public keys only **in-frequently**_. Thus these public keys are can be cached. Thus following instrument have `jwksExpirety` attribute to set TTL for cached public keys.
-
-
-```go
-type GoogleProvider struct {
-	ClientID         string
-	ClientSecret     string
-	AuthURI          string
-	TokenURI         string
-	RedirectURI      string
-	JWKsURI          string
-	Scopes           []string
-	cachedPublicKeys map[string]*rsa.PublicKey
-	jwtksExpirety    time.Time
+// handler
+google_oidc_handler := auth.OIDCHandler{
+	StateManager: state_manager,
+	Provider:     google_provider,
+	TokenManager: jwt_manager,
+	UserManager:  &userRepo,
 }
 
-func (p GoogleProvider) CreateAuthUrl(state, nonce string) string {
-	query_params := url.Values{}
-	query_params.Add("client_id", p.ClientID)
-	query_params.Add("redirect_uri", p.RedirectURI)
-	query_params.Add("scope", strings.Join(p.Scopes, " "))
-	query_params.Add("response_type", "code")
-	query_params.Add("state", state)w
-	query_params.Add("nonce", nonce)
 
-	return fmt.Sprintf("%s?%s", p.AuthURI, query_params.Encode())
-}
+//endpoints
+http.HandleFunc("GET /google/auth", google_oidc_handler.Login)
+http.HandleFunc(
+	`/auth/google/callback`,
+	google_oidc_handler.Callback,
+)
 
-// Please go see [Google OIDC Documentation](developers.google.com/identity/openid-connect/openid-connect) for more claim fields
-type GoogleClaims struct {
-	Nonce string `json:"nonce"`
-	// The user's email address. Provided only `email` scope is included
-	Email         string `json:"email"`
-	EmailVerified bool   `json:"email_verified"`
-	// The domain associated with the Google Workspace or Cloud organization of the user.
-	Hd string `json:"hd"`
-	// Access Token Hash. This claim can be used to protect agains xss attacks.
-	AtHash string `json:"at_hash"`
-	// Identifies the client that the token was issued to (client_id)
-	AuthorizedParty string `json:"azp"`
-	jwt.RegisteredClaims
-}
-
-func jwkToRSAPublicKey(key jwk) (*rsa.PublicKey, error) {
-	nBytes, err := base64.RawURLEncoding.DecodeString(key.N)
-	if err != nil {
-		return nil, err
-	}
-	eBytes, err := base64.RawURLEncoding.DecodeString(key.E)
-	if err != nil {
-		return nil, err
-	}
-	n := new(big.Int).SetBytes(nBytes)
-	e := new(big.Int).SetBytes(eBytes)
-
-	return &rsa.PublicKey{
-		N: n,
-		E: int(e.Int64()),
-	}, nil
-}
-
-func (p *GoogleProvider) fetchJWKS() error {
-	if p.cachedPublicKeys != nil && time.Now().Before(p.jwtksExpirety) {
-		return nil
-	}
-
-	resp, err := http.Get(p.JWKsURI)
-	if err != nil {
-		return fmt.Errorf("[FAILED TO FETCH JWKS KEYS]: %v", err)
-	}
-	defer resp.Body.Close()
-
-	var jwks jwksResponse
-	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
-		return fmt.Errorf("[FAILED TO DECODE JWKs RESPONSE]: %v", err)
-	}
-
-	p.cachedPublicKeys = make(map[string]*rsa.PublicKey)
-	for _, key := range jwks.Keys {
-		pubKey, err := jwkToRSAPublicKey(key)
-		if err != nil {
-			return err
-		}
-		p.cachedPublicKeys[key.Kid] = pubKey
-	}
-	if cacheControl := resp.Header.Get("Cache-Control"); cacheControl != "" {
-		var max_age int
-		_, err := fmt.Sscanf(cacheControl, "max-age=%d", &max_age)
-		if err != nil || max_age <= 0 {
-			p.jwtksExpirety = time.Now().Add(1 * time.Hour)
-		}
-
-		p.jwtksExpirety = time.Now().Add(time.Duration(max_age) * time.Second)
-
-	}
-
-	return nil
-}
-
-func (p GoogleProvider) VerifyIdToken(id_token_str string) (*GoogleClaims, error) {
-	// Fetch JWKS Keys
-	if err := p.fetchJWKS(); err != nil {
-		return nil, err
-	}
-
-	token, err := jwt.ParseWithClaims(
-		id_token_str,
-		&GoogleClaims{},
-		func(t *jwt.Token) (any, error) {
-			_, k := t.Method.(*jwt.SigningMethodRSA)
-			if !k {
-				return nil, fmt.Errorf("Invalid Token Signing Method")
-			}
-
-			kid, k := t.Header["kid"].(string)
-			if !k {
-				return nil, fmt.Errorf("Invalid Token: kid is not in the header")
-			}
-
-			publicKey, exists := p.cachedPublicKeys[kid]
-			if !exists {
-				return nil, fmt.Errorf("Invalid Token: public key not found for kid (%s)", kid)
-			}
-
-			return publicKey, nil
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("Invalid Token Format")
-	}
-	claims, k := token.Claims.(*GoogleClaims)
-	if !k {
-		return nil, fmt.Errorf("Invalid Claims Format")
-	}
-
-	//if !strings.EqualFold("https://account.google.com", claims.Issuer) || strings.EqualFold(claims.Issuer, "account.google.com") {
-	//	return nil, fmt.Errorf("Invalid Token: invalid issuer ")
-	//}
-
-	if claims.Audience[0] != p.ClientID {
-		return nil, fmt.Errorf("Invalid Audience")
-	}
-
-	if time.Now().Unix() > claims.ExpiresAt.Unix() {
-		return nil, fmt.Errorf("Token Expired")
-	}
-
-	return claims, nil
-}
-
-func (g GoogleProvider) ExchangeCode(access_code_str string) (*TokenResponse, error) {
-	params := url.Values{}
-	params.Add("code", access_code_str)
-	params.Add("client_id", g.ClientID)
-	params.Add("client_secret", g.ClientSecret)
-	params.Add("redirect_uri", g.RedirectURI)
-	params.Add("grant_type", "authorization_code")
-	r, err := http.NewRequest(
-		http.MethodPost,
-		g.TokenURI,
-		strings.NewReader(params.Encode()),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	client := http.Client{}
-
-	resp, err := client.Do(r)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	var tokenResponse TokenResponse
-
-	decoder := json.NewDecoder(resp.Body)
-	if err := decoder.Decode(&tokenResponse); err != nil {
-		return nil, err
-	}
-
-	return &tokenResponse, nil
-}
 ```
 
 ## Versioning & Changelog
